@@ -7,20 +7,26 @@ import weka.core.Capabilities;
 import weka.core.Capabilities.Capability;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.classifiers.Evaluation;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Normalize;
+
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 
 
 public class ANN extends AbstractClassifier {
-	private Instances 	trainData;
+	private Instances trainData;
+	private MLPerceptron mlp;
+	private int numInput;
+	private int numOutput;
 
+	@Override
 	public Capabilities getCapabilities() {
 		Capabilities result = super.getCapabilities();
 		result.disableAll();
-
 		result.enable(Capability.NUMERIC_ATTRIBUTES);
-		result.enable(Capability.NOMINAL_ATTRIBUTES);
 		result.setMinimumNumberInstances(2);
 		return result;
 	}
@@ -28,41 +34,54 @@ public class ANN extends AbstractClassifier {
 	//Proses pembuatan model pembelajaran
 	@Override
 	public void buildClassifier(Instances data) throws Exception {
-		
 		data = new Instances(data);
 		data.deleteWithMissingClass();
-		//copy instancesfrom first (0)
 		Instances trainData = new Instances(data , 0, data.numInstances());
+
+		Normalize filter = new Normalize();
+		filter.setInputFormat(trainData);
+		trainData = Filter.useFilter(trainData , filter);
+
+
+		numInput = trainData.numAttributes() - 1;
+		numOutput = trainData.numClasses();
+
+		System.out.println(numInput);
+
+		mlp = new MLPerceptron(numInput,5,numOutput,0.1);
+
+		List<Double> input = new ArrayList<Double>();
+		
+
+		for (int x = 0 ; x < 20 ; x++){
+		Enumeration enu = trainData.enumerateInstances();
+		while(enu.hasMoreElements()){
+			Instance i = (Instance) enu.nextElement();
+			for (int j = 0 ; j<numInput ; j++){
+				input.add(new Double(i.value(i.attribute(j))));
+			}
+			mlp.process(input);
+			System.out.println(i.classValue());
+			mlp.updateWeight(i.classValue());
+			input.clear();
+		}
 	}
 
-	//
+	}
+
 	public double classifyInstance(Instance instance){
-		/*
-		double minDistance = Double.MAX_VALUE;
-		double secondMinDistance = Double.MAX_VALUE;
-		double distance;
-		double classVal = 0;
-		double minClassVal = 0;
+			List<Double> input = new ArrayList<Double>();
+			Instance i = instance;
 
-		Enumeration enu = trainData.enumerateInstances();
-		while (enu.hasMoreElements()) {
-			Instance trainInstance = (Instancece) enu.nextElement();
-			distance = distance(instance, trainInstance);
-			if (distance < minDistance) {
-				secondMinDistance = minDistance;
-				minDistance = distance;
+			//Construct input
+			System.out.println("Instance!");
+			for (int j = 0 ; j<numInput ; j++){
+				input.add(new Double(i.value(i.attribute(j))));
+			}
+			//process
+			mlp.process(input);
 
-				classVal = minClassVal;
-				minClassVal = trainInstance.classValue();
-			}
-			else if (distance < secondMinDistance){
-				secondMinDistance = distance;
-				classVal = trainInstance.classValue();
-			}
-		}
-		*/
-		double classVal = 0;
-		return classVal;
+		return mlp.getOutput();
 	}
 
 	public static void main (String args[]) {
@@ -74,7 +93,16 @@ public class ANN extends AbstractClassifier {
 		dataset.setClassIndex(dataset.numAttributes() - 1);
 		reader.close();
 
-		int numInput = dataset.numAttributes();
+		ANN ann = new ANN();
+		ann.buildClassifier(dataset);
+
+
+		Evaluation eval = new Evaluation(dataset);
+		eval.evaluateModel(ann,dataset);
+		System.out.println(eval.toSummaryString("\nFull Training Results\n", false));
+
+
+		/*int numInput = dataset.numAttributes();
 		int numOutput = dataset.numClasses();
 
 		MLPerceptron mlp = new MLPerceptron(numInput,5,numOutput,0.1);
@@ -99,10 +127,11 @@ public class ANN extends AbstractClassifier {
 			System.out.println(i.classValue());
 			mlp.updateWeight(i.classValue());
 			input.clear();
-
 		}
-	}
+		
 
+	}
+	*/
 
 	
 

@@ -37,10 +37,16 @@ public class Perceptron {
 		this.inputs = new ArrayList<Double>(in);
 		inputs.add(0, new Double(1));
 
+		System.out.println("Inputs w Bias : " + inputs);
+
+		System.out.println("Weight : "+weights);
+
 		//weight input
 		for(int i=0 ; i < inputs.size() ; i++){
 			weightedInputs.set(i, weights.get(i) * inputs.get(i) );
 		}
+
+		System.out.println("Weighted Inputs : " + weightedInputs);
 
 		//summer
 		summed = new Double(0);
@@ -48,8 +54,13 @@ public class Perceptron {
 			summed = summed + weightedInputs.get(i);
 		}
 
+		System.out.println("Sum :" + summed);
+
 		//activation function
 		output = sigmoid(summed);
+
+		System.out.println("Sigmoid : " + output);
+		System.out.println("");
 		return output;
 	}
 
