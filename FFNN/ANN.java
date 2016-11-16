@@ -1,3 +1,4 @@
+import java.util.Scanner;
 import java.util.Enumeration;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,13 @@ public class ANN extends AbstractClassifier {
 	private MLPerceptron mlp;
 	private int numInput;
 	private int numOutput;
+	private double learningRate;
+	private int numHiddenLayerNeuron;
+
+	public ANN(double _learningRate , int _numHiddenLayerNeuron ) {
+		learningRate = _learningRate;
+		numHiddenLayerNeuron = _numHiddenLayerNeuron;
+	}
 
 	@Override
 	public Capabilities getCapabilities() {
@@ -48,23 +56,29 @@ public class ANN extends AbstractClassifier {
 
 		System.out.println(numInput);
 
-		mlp = new MLPerceptron(numInput,5,numOutput,0.1);
+		mlp = new MLPerceptron(numInput,numHiddenLayerNeuron,numOutput,learningRate);
 
 		List<Double> input = new ArrayList<Double>();
 		
 
-		for (int x = 0 ; x < 20 ; x++){
+		for (int x = 0 ; x < 10000 ; x++){
 		Enumeration enu = trainData.enumerateInstances();
+		int countSuccess = 0;
 		while(enu.hasMoreElements()){
 			Instance i = (Instance) enu.nextElement();
 			for (int j = 0 ; j<numInput ; j++){
 				input.add(new Double(i.value(i.attribute(j))));
 			}
 			mlp.process(input);
-			System.out.println(i.classValue());
+			if (i.classValue() == mlp.getOutput() ){
+				countSuccess++;
+			}
 			mlp.updateWeight(i.classValue());
 			input.clear();
 		}
+		double successRate = Math.round ((double) countSuccess / (double) trainData.numInstances() * 100);
+		//System.out.println( Math.round(((double) x / 100)) + " : " +successRate + " %");
+		//System.out.println(countSuccess++);
 	}
 
 	}
@@ -93,9 +107,20 @@ public class ANN extends AbstractClassifier {
 		dataset.setClassIndex(dataset.numAttributes() - 1);
 		reader.close();
 
-		ANN ann = new ANN();
+		Scanner scan = new Scanner(System.in);
+		System.out.print("Masukkan jumlah neuron pada hidden layer : ");
+		int n = scan.nextInt();
+
+
+		ANN ann = new ANN(0.2  , n	);
 		ann.buildClassifier(dataset);
 
+
+		System.out.println("BATAS!");
+
+		Normalize filter = new Normalize();
+		filter.setInputFormat(dataset);
+		dataset = Filter.useFilter(dataset , filter);
 
 		Evaluation eval = new Evaluation(dataset);
 		eval.evaluateModel(ann,dataset);

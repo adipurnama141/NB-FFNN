@@ -19,9 +19,9 @@ public class Perceptron {
 	}
 
 	public void showWeights(){
-		System.out.println("Current Weights : " + weights.size());
+		//System.out.println("Current Weights : " + weights.size());
 		for (int i = 0; i < weights.size() ; i++){
-			System.out.println(weights.get(i));
+			//System.out.println(weights.get(i));
 		}
 	}
 
@@ -37,16 +37,16 @@ public class Perceptron {
 		this.inputs = new ArrayList<Double>(in);
 		inputs.add(0, new Double(1));
 
-		System.out.println("Inputs w Bias : " + inputs);
+		//System.out.println("Inputs w Bias : " + inputs);
 
-		System.out.println("Weight : "+weights);
+		//System.out.println("Weight : "+weights);
 
 		//weight input
 		for(int i=0 ; i < inputs.size() ; i++){
 			weightedInputs.set(i, weights.get(i) * inputs.get(i) );
 		}
 
-		System.out.println("Weighted Inputs : " + weightedInputs);
+		//System.out.println("Weighted Inputs : " + weightedInputs);
 
 		//summer
 		summed = new Double(0);
@@ -54,13 +54,13 @@ public class Perceptron {
 			summed = summed + weightedInputs.get(i);
 		}
 
-		System.out.println("Sum :" + summed);
+		//System.out.println("Sum :" + summed);
 
 		//activation function
 		output = sigmoid(summed);
 
-		System.out.println("Sigmoid : " + output);
-		System.out.println("");
+		//System.out.println("Sigmoid : " + output);
+		//System.out.println("");
 		return output;
 	}
 
@@ -79,10 +79,15 @@ public class Perceptron {
 
 
 	public void updateWeight(){
+		//System.out.println("Error : " + error);
+		double oldweight;
 		double newWeight;	
 		for(int i=0 ; i< weights.size() ; i++){
+			oldweight = weights.get(i);
 			newWeight = weights.get(i) + (learningRate * error * inputs.get(i));
 			weights.set(i ,newWeight );
+
+			//System.out.println(oldweight +"->"+ newWeight);
 		}
 	}
 
@@ -102,6 +107,7 @@ public class Perceptron {
 
 		Random rnd = new Random();
 		for (int i = 0 ; i <= nInput ; i++){
+			//
 			weights.add(rnd.nextDouble());
 			weightedInputs.add(new Double(0));
 		}
@@ -115,12 +121,12 @@ public class Perceptron {
 		input.add(new Double(0.9));
 
 		for(int i = 0 ; i < 100 ; i++){
-			System.out.println(p.process(input));
+			//System.out.println(p.process(input));
 			//p.showWeights();
 			p.updateWeight(1);
 		}
 
-		System.out.println(p.process(input));
+		//System.out.println(p.process(input));
 
 
 	}

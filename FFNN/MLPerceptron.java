@@ -16,6 +16,7 @@ public class MLPerceptron {
 	private int nClass;
 	private double learningRate;
 	private double output;
+	private boolean noHiddenLayer;
 
 
 	public MLPerceptron(int _nInput, int _nHiddenLayerNeuron, int _nClass, double _learningRate ){
@@ -26,10 +27,23 @@ public class MLPerceptron {
 		nClass = _nClass;
 		learningRate = _learningRate;
 
-		//inisialisasi hidden layer 
-		for (int i = 0 ; i < nHiddenLayerNeuron ; i++){
-			hiddenLayer.add(new Perceptron(nInput , learningRate));
+		if ( nHiddenLayerNeuron == 0 ){
+			noHiddenLayer = true;
+			nHiddenLayerNeuron = nInput;
 		}
+		else {
+			noHiddenLayer = false;
+			
+		}
+
+		if (!noHiddenLayer){
+			//inisialisasi hidden layer 
+			for (int i = 0 ; i < nHiddenLayerNeuron ; i++){
+				hiddenLayer.add(new Perceptron(nInput , learningRate));
+			}
+		}
+
+
 
 		//inisialisasi jumlah neuron 
 		if ( nClass == 2){
@@ -41,6 +55,7 @@ public class MLPerceptron {
 
 		//inisialisasi output layer
 		for (int i =0 ; i < nOutputLayerNeuron ; i++){
+			//System.out.println("n Hidden layer" + nHiddenLayerNeuron);
 			outputLayer.add(new Perceptron(nHiddenLayerNeuron, learningRate));
 		}
 	}
@@ -77,47 +92,57 @@ public class MLPerceptron {
 
 	public void process(List<Double> in){
 
-		System.out.println("FEED FORWARD ANN (BEGIN)");
-		System.out.println("Input : "  + in);
-		System.out.println("-----------------------------------------------------------");
-		System.out.println("");
-
-
-		//proses pada hidden layer
-		for(int i = 0 ; i < nHiddenLayerNeuron ; i++){
-			System.out.println("HiddenLayer Neuron #" + i);
-			hiddenLayer.get(i).process(in);
-		}
-
+		List<Double> hiddenLayerResult;
+		//System.out.println("FEED FORWARD ANN (BEGIN)");
+		//System.out.println("Input : "  + in);
+		//System.out.println("-----------------------------------------------------------");
+		//System.out.println("");
 		
 
-		//buat list hasil proses hidden layer
-		List<Double> hiddenLayerResult = new ArrayList<Double>();
-		for (int  i = 0; i < nHiddenLayerNeuron ; i++){
-			hiddenLayerResult.add(hiddenLayer.get(i).getOutput());
+		//System.out.println("PROPAGATE");
+
+		
+		if (!noHiddenLayer){
+			//proses pada hidden layer
+			for(int i = 0 ; i < nHiddenLayerNeuron ; i++){
+				//System.out.println("HiddenLayer Neuron #" + i);
+				hiddenLayer.get(i).process(in);
+			}
+
+			//buat list hasil proses hidden layer
+			hiddenLayerResult= new ArrayList<Double>();
+			for (int  i = 0; i < nHiddenLayerNeuron ; i++){
+				hiddenLayerResult.add(hiddenLayer.get(i).getOutput());
+			}
+		}
+		else {
+			hiddenLayerResult = in;
 		}
 
-		System.out.println("Processing Hidden Layer Output : " + hiddenLayerResult);
-		System.out.println("");
+
+		//System.out.println("Processing Hidden Layer  : " + hiddenLayerResult);
+		//System.out.println("");
 
 		//proses pada output layer
 		for(int i = 0 ; i < nOutputLayerNeuron ; i++){
-			System.out.println("OutputLayer Neuron #"+i);
+			//System.out.println("OutputLayer Neuron #"+i);
 			outputLayer.get(i).process(hiddenLayerResult);			
 		}
 
 		determineOutput();
 
+		//System.out.println("Processing Output Layer  : ");
 		for(int i = 0 ; i <nOutputLayerNeuron ; i++){
-			System.out.println(outputLayer.get(i).getOutput());
+			//System.out.println(outputLayer.get(i).getOutput());
 		}
 
-		System.out.println("Output : " + output);
+		//System.out.println("Output : " + output);
 
 	}
 
 
 	private void prepareDesiredOutput(double d){
+		desiredOutput.clear();
 		if (nClass == 2){
 			desiredOutput.add(new Double(d));			
 		}
@@ -140,13 +165,14 @@ public class MLPerceptron {
 		double error;
 		double perceptronOutput;
 
-		System.out.println("Desired Output : " + doutput);
-		System.out.println("");
+		//System.out.println("Real Desired Output : " + doutput);
+		//System.out.println("");
 		prepareDesiredOutput(doutput);
+		//System.out.println(desiredOutput);
 
-		System.out.println("");
-		System.out.println("BACKPROPAGATE");
-		System.out.println("");
+		//System.out.println("");
+		//System.out.println("BACKPROPAGATE");
+		//System.out.println("");
 
 
 		//calculate output layer error
@@ -156,39 +182,50 @@ public class MLPerceptron {
 			error = perceptronOutput * (1 - perceptronOutput) * (desiredOutput.get(i) - perceptronOutput);
 			outputLayer.get(i).setError(error);
 
-			System.out.println("Output Layer Neuron#"+i);
-			System.out.println("Desired Output : " + desiredOutput.get(i));
-			System.out.println("Actual Output :" + perceptronOutput);
-			System.out.println("Error  : "+error);
+			//System.out.println("Output Layer Neuron#"+i);
+			//System.out.println("Desired Output : " + desiredOutput.get(i));
+			//System.out.println("Actual Output :" + perceptronOutput);
+			//System.out.println("Error  : "+error);
+			//System.out.println("");
 		}
 		
 
-		//calculate hidden layer error
-		for(int i = 0 ; i < nHiddenLayerNeuron ; i++){
-			double sum = 0;
-			perceptronOutput = hiddenLayer.get(i).getOutput();
-			System.out.println("Hidden Layer Neuron#"+i);
+		if (!noHiddenLayer){
+			//calculate hidden layer error
+			for(int i = 0 ; i < nHiddenLayerNeuron ; i++){
+				double sum = 0;
+				perceptronOutput = hiddenLayer.get(i).getOutput();
+				//System.out.println("Hidden Layer Neuron#"+i);
 
-			for (int j = 0 ; j < nOutputLayerNeuron ; j++) {
-				double localerror = outputLayer.get(j).getError() * outputLayer.get(j).getWeight(j+1);
-				sum = sum + localerror;
+				for (int j = 0 ; j < nOutputLayerNeuron ; j++) {
+					//System.out.print("Output layer # "+ j  + " : ");
+					//System.out.println(outputLayer.get(j).getError() + " x " +outputLayer.get(j).getWeight(i+1));
+					double localerror = outputLayer.get(j).getError() * outputLayer.get(j).getWeight(i+1);
+					sum = sum + localerror;
+				}
+
+				error = perceptronOutput * ( 1 - perceptronOutput) * sum;
+				hiddenLayer.get(i).setError(error);
+				
+				//System.out.println("Error  : "+error);
+				//System.out.println("");
 			}
-
-			error = perceptronOutput * ( 1 - perceptronOutput) * sum;
-			hiddenLayer.get(i).setError(error);
-
-			
-			System.out.println("Error  : "+error);
-
 		}
 
+		//System.out.println("WEIGHT UPDATE");
 
 		//update weight
 		for (int i = 0 ; i <nOutputLayerNeuron ; i++){
+			//System.out.println("Update Output Layer #"+i);
 			outputLayer.get(i).updateWeight();
+			//System.out.println("");
 		}
+		if (!noHiddenLayer){
 		for (int i = 0; i <nHiddenLayerNeuron ; i++) {
+			//System.out.println("Update Hidden Layer #"+i);
 			hiddenLayer.get(i).updateWeight();
+			//System.out.println("");
+		}
 		}
 		
 
