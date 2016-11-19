@@ -1,11 +1,11 @@
 all:
-	javac -cp C:\Java\tubesai\weka.jar MLPerceptron.java Perceptron.java
+	javac -cp .;weka.jar MLPerceptron.java Perceptron.java
 
 me:
-	javac -cp C:\Java\tubesai\weka.jar ANN.java MLPerceptron.java Perceptron.java
+	javac -cp .;weka.jar ANN.java MLPerceptron.java Perceptron.java
 
 run:
-	java -cp .;C:\Java\tubesai\weka.jar ANN
+	java -cp .;weka.jar ANN
 
 mlp:
 	java MLPerceptron

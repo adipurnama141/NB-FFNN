@@ -2,6 +2,7 @@ import java.util.Scanner;
 import java.util.Enumeration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import weka.classifiers.Classifier;
 import weka.classifiers.AbstractClassifier;
 import weka.core.Capabilities;
@@ -54,7 +55,7 @@ public class ANN extends AbstractClassifier {
 		numInput = trainData.numAttributes() - 1;
 		numOutput = trainData.numClasses();
 
-		System.out.println(numInput);
+	//	System.out.println(numInput);
 
 		mlp = new MLPerceptron(numInput,numHiddenLayerNeuron,numOutput,learningRate);
 
@@ -88,7 +89,7 @@ public class ANN extends AbstractClassifier {
 			Instance i = instance;
 
 			//Construct input
-			System.out.println("Instance!");
+	//		System.out.println("Instance!");
 			for (int j = 0 ; j<numInput ; j++){
 				input.add(new Double(i.value(i.attribute(j))));
 			}
@@ -101,13 +102,17 @@ public class ANN extends AbstractClassifier {
 	public static void main (String args[]) {
 		try {
 
-		
-		BufferedReader reader = new BufferedReader(new FileReader("iris.arff"));
+		String filename;
+
+		Scanner scan = new Scanner(System.in);
+		System.out.print("Masukkan Nama File dataset : ");
+		filename = scan.nextLine();
+
+		BufferedReader reader = new BufferedReader(new FileReader(filename));
 		Instances dataset = new Instances(reader);
 		dataset.setClassIndex(dataset.numAttributes() - 1);
 		reader.close();
 
-		Scanner scan = new Scanner(System.in);
 		System.out.print("Masukkan jumlah neuron pada hidden layer : ");
 		int n = scan.nextInt();
 
@@ -116,7 +121,7 @@ public class ANN extends AbstractClassifier {
 		ann.buildClassifier(dataset);
 
 
-		System.out.println("BATAS!");
+	//	System.out.println("BATAS!");
 
 		Normalize filter = new Normalize();
 		filter.setInputFormat(dataset);
@@ -125,7 +130,15 @@ public class ANN extends AbstractClassifier {
 		Evaluation eval = new Evaluation(dataset);
 		eval.evaluateModel(ann,dataset);
 		System.out.println(eval.toSummaryString("\nFull Training Results\n", false));
+        System.out.println(eval.toClassDetailsString());
+        System.out.println(eval.toMatrixString());
 
+		Evaluation eval2 = new Evaluation(dataset);
+        Random rand = new Random(1);  // using seed = 1
+        eval2.crossValidateModel(ann, dataset, 10, rand);
+		System.out.println(eval2.toSummaryString("\n10-Fold Cross Validation Results\n", false));
+        System.out.println(eval2.toClassDetailsString());
+        System.out.println(eval2.toMatrixString());
 
 		/*int numInput = dataset.numAttributes();
 		int numOutput = dataset.numClasses();

@@ -2,8 +2,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.lang.Math;
 import java.util.Random;
+import java.io.Serializable;
 
-public class Perceptron {
+public class Perceptron implements Serializable{
 	
 	private int nInput;
 	private List<Double> inputs = new ArrayList<Double>();

@@ -2,9 +2,10 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.lang.Math;
+import java.io.Serializable;
 
 
-public class MLPerceptron {
+public class MLPerceptron implements Serializable {
 
 	private List<Perceptron> hiddenLayer = new ArrayList<Perceptron>();
 	private List<Perceptron> outputLayer = new ArrayList<Perceptron>();
