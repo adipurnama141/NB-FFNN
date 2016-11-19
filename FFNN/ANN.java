@@ -116,8 +116,10 @@ public class ANN extends AbstractClassifier {
 		System.out.print("Masukkan jumlah neuron pada hidden layer : ");
 		int n = scan.nextInt();
 
+		System.out.print("Masukkan learning rate : ");
+		double lr = scan.nextDouble();
 
-		ANN ann = new ANN(0.2  , n	);
+		ANN ann = new ANN(lr  , n	);
 		ann.buildClassifier(dataset);
 
 
