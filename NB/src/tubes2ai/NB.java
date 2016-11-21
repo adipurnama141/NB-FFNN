@@ -32,10 +32,13 @@ import weka.filters.unsupervised.attribute.NumericToNominal;
 
 public class NB extends AbstractClassifier {
         private static Instances dataset;
-        private static int classIndex;
-        private static double delta;
+        private static int classIndex=0;
+        private static double delta=1;
         private static int numOutput;
         private static int numInput;
+        private static ArrayList<ArrayList<ArrayList<Float>>> peluang;
+        private static ArrayList<ArrayList<ArrayList<Double>>> probs;
+        
         
 	public Capabilities getCapabilities() {
 		Capabilities result = super.getCapabilities();
@@ -48,167 +51,139 @@ public class NB extends AbstractClassifier {
 	}
 
 	//Proses pembuatan model pembelajaran
+        public void printProb() {
+            for (int i=0; i<dataset.numAttributes(); i++) {
+                ArrayList<ArrayList<Double>> tes = probs.get(i);
+                for (int j=0; j< tes.size(); j++) {
+                    System.out.println(j-1);
+                    System.out.println(tes.get(j));
+                }
+            }
+        }
 	@Override
 	public void buildClassifier(Instances data) throws Exception {
-		
-		data = new Instances(data);
-		data.deleteWithMissingClass();
-		Instances trainData = new Instances(data , 0, data.numInstances());
-
-		/*Normalize filter = new Normalize();
-		filter.setInputFormat(trainData);
-		trainData = Filter.useFilter(trainData , filter);*/
-
-		numInput = trainData.numAttributes() - 1;
-		numOutput = trainData.numClasses();
-
-	//	System.out.println(numInput);
-
-		
-                    Enumeration enu = trainData.enumerateInstances();
-                    int countSuccess = 0;
-                    while(enu.hasMoreElements()){
-                            System.out.println("tes");
-                            Instance i = (Instance) enu.nextElement();
-                            if (i.classValue() == classifyInstance(i) ){
-                                    countSuccess++;
-                            }
-                    }
-                    double successRate = Math.round ((double) countSuccess / (double) trainData.numInstances() * 100);
-                    //System.out.println( Math.round(((double) x / 100)) + " : " +successRate + " %");
-                    //System.out.println(countSuccess++);
-                
-
+            probs = new ArrayList<>();
+            Instances dt = new Instances(data);
+            for (int i=0; i<dt.numAttributes(); i++) {
+                if (i!=classIndex) {
+                    probs.add(i, getProbabilityAttribute(i, dt));
+                } else {
+                    probs.add(i, getProbabilityClass(dt));
+                }
+            }
 	}
         
+        @Override
 	public double classifyInstance(Instance instance){
                 dataset.setClassIndex(classIndex);
                 numOutput = dataset.numClasses();
-                int i, j, it, idx;
+                int i, atr, it;
                 double classVal = 0;
                 double tempprob =0;
                 int numatr= instance.numAttributes();
                 int numInst;
                 double value;
-                ArrayList<double[][]> arr=null;
                 boolean found;
-                
-                //Save all distinct value of class to list
-                ArrayList arrcls = new ArrayList();
-                for (i = 0; i <dataset.numInstances(); i++) {
-                double datumclass= dataset.instance(i).value(classIndex);
-                    if (!arrcls.contains(datumclass)) {
-                        arrcls.add(datumclass);
-                    }
-                }
                 
                 //Classifier
                 for (i=0; i<numOutput; i++) {
-                    float prob=1;
-                    for (j=0; j<numatr; j++) {
-                        value = 0;
-                        if (j==classIndex) {
-                            j++;
+                    double prob=1;
+                    for (atr=0; atr<numatr; atr++) {
+                        ArrayList<Double> arr = new ArrayList<Double>();
+                        if (atr==classIndex) {
+                            atr++;
                         }
-                        arr = discritize(j);
+                        arr = probs.get(atr).get(0);
                         numInst = arr.size();
                         found = false;
                         it=0;
                         while (!found && it < numInst ) {
-                            value = instance.value(j);
-                            if (arr.get(it)[0][0]<= value && arr.get(it)[0][1] > value) {
+                            value = instance.value(atr);
+                            if (arr.get(it) <= value && arr.get(it)+delta-0.001 > value) {
                                 found = true;
+                                
                             } else {
                                 it++;
                             }
                         }
-                        //System.out.println(found);
                         if (found) {
-                            prob *= getProbability(j, arr.get(it), (double) arrcls.get(i));
+                            prob *= probs.get(atr).get(i+1).get(it);
                         } else {
                             return -1;
                         }
-                        arr.clear();
                     }
-                    prob *= getProbClass(dataset.get(i).value(classIndex));
+                    //System.out.println(probs.get(classIndex).get(1).get(i));
+                    prob *= probs.get(classIndex).get(1).get(i);
                     //System.out.println(prob);
                     if (prob>tempprob) {
                         //Bandingkan kelas
                         tempprob = prob;
-                        classVal = i;
+                        classVal = (double) i;
                     }
                 }
 		return classVal;
 	}
         
-        public double getProbClass (double cls) {
+        public double getProbabilityIdxClass (double cls, Instances data) {
             int countcls = 0;
-            for (int i=0; i<dataset.numInstances(); i++) {
-                if (dataset.get(i).value(classIndex) == cls) {
+            for (int i=0; i<data.numInstances(); i++) {
+                if (data.get(i).value(classIndex) == cls) {
                     countcls++;
                 }
             }
             return (double)countcls/dataset.numInstances();
         }
-	public int getFrekuensi(int idxAttrib, double value, double kelas) {
-		/*mengembalikan frekuensi idxAttrib yang bernilai kelas (yes/no)*/
-		int frek = 0;
-		for (int i = 0; i < dataset.numInstances(); i++) {
-			if (dataset.instance(i).value(idxAttrib) ==  value &&
-				dataset.instance(i).value(classIndex) == kelas) {
-				frek++;
-			}
-		}
-		return frek;
-	}
         
-        public int getFrekuensi(int idxAttrib, double[][] value, double kelas) {
+        public ArrayList<ArrayList<Double>> getProbabilityClass (Instances data) {
+            //Save all distinct value of class to list
+            ArrayList<Double> arrcls = new ArrayList();
+            for (int i = 0; i <data.numInstances(); i++) {
+            double datumclass= data.instance(i).value(classIndex);
+                if (!arrcls.contains(datumclass)) {
+                    arrcls.add(datumclass);
+                }
+            }
+            ArrayList<ArrayList<Double>> probclass = new ArrayList<>();
+            probclass.add(arrcls);
+            ArrayList<Double> temp = new ArrayList<>();
+            for (int j=0; j<arrcls.size(); j++) {
+                temp.add(getProbabilityIdxClass((double) j, data));
+            }
+            probclass.add(temp);
+            return probclass;
+        }
+	public int getFrekuensi(int idxAttrib, double value, double kelas, Instances data) {
 		/*mengembalikan frekuensi idxAttrib yang bernilai kelas (yes/no)*/
 		int frek = 0;
                 double val;
-		for (int i = 0; i < dataset.numInstances(); i++) {
-                        val = dataset.instance(i).value(idxAttrib);
-			if ( val >=  value[0][0] && val <  value[0][1] &&
-				dataset.instance(i).value(classIndex) == kelas) {
+		for (int i = 0; i < data.numInstances(); i++) {
+			val = data.instance(i).value(idxAttrib);
+			if ( val >=  value && val <  value+delta-0.001 &&
+				data.instance(i).value(classIndex) == kelas) {
 				frek++;
 			}
 		}
 		return frek;
 	}
-
-	public float getProbability(int idxAttrib, double value, double kelas) {
-            ArrayList arr = new ArrayList();
-            for (int i=0; i<dataset.numInstances(); i++) {
-                double data = dataset.get(i).value(idxAttrib);
-                if (!arr.contains(data)) {
-                    arr.add(data);
-                }
-            }
-            
+        
+       
+	public float getProbability(int idxAttrib, double value, double kelas, Instances data) {
             int sumkelas = 0;
-            for (int i=0; i<arr.size(); i++) {
-                sumkelas += getFrekuensi(idxAttrib, (double) arr.get(i), kelas);
-            }
-            return (getFrekuensi(idxAttrib, value, kelas)/sumkelas);
+                ArrayList<Double> arr = discritize(idxAttrib, data);
+                for (int i=0; i<arr.size(); i++) {
+                    sumkelas += getFrekuensi(idxAttrib, arr.get(i), kelas, data);
+                }
+		return ((float)getFrekuensi(idxAttrib, value, kelas, data)/sumkelas);
 	}
         
-        public float getProbability(int idxAttrib, double[][] value, double kelas) {
-            
-                int sumkelas = 0;
-                ArrayList<double[][]> arr = discritize(idxAttrib);
-                for (int i=0; i<arr.size(); i++) {
-                    sumkelas += getFrekuensi(idxAttrib, arr.get(i), kelas);
-                }
-		return ((float)getFrekuensi(idxAttrib, value, kelas)/sumkelas);
-        }
         
-        public ArrayList<double[][]> discritize(int idxAttrib) {
+        public ArrayList discritize(int idxAttrib, Instances data) {
             //Get minimum and maksimum value from instance
-                double min = dataset.instance(1).value(idxAttrib);
+                double min = data.instance(1).value(idxAttrib);
                 double maks = min;
-                int numInstances = dataset.numInstances();
+                int numInstances = data.numInstances();
                 for (int it=1; it < numInstances; it++) {
-                    double elm = dataset.instance(it).value(idxAttrib);
+                    double elm = data.instance(it).value(idxAttrib);
                     if (elm < min) {
                         min = elm;
                     } else {
@@ -218,21 +193,20 @@ public class NB extends AbstractClassifier {
                     }
                 }
                 //Save all distinct value of instance to list
-                delta = 0.2;
-                ArrayList<double[][]> arr = new ArrayList<>();
+                ArrayList arr = new ArrayList();
                 double start = min;
                 while (start<maks+delta) {
-                    double[][] datum = new double[1][2];
-                    datum[0][0] = start;
-                    datum[0][1] = start+delta-0.001;
+                    double datum = start;
                     arr.add(datum);
                     start = Math.round((start+delta)*100.00)/100.00;
                 }
                 
                 return arr;
         }
-	public void showFrekuensi(int idxAttrib) {
-                ArrayList<double[][]> arr = discritize(idxAttrib);
+	
+        
+        public void showProbability(int idxAttrib, Instances data) {
+                ArrayList<Double> arr = discritize(idxAttrib, dataset);
                 System.out.println("--------------");
                 
                 //Save all distinct value of class to list
@@ -248,45 +222,43 @@ public class NB extends AbstractClassifier {
                 
                 for (int i=0; i<arr.size();i++) {
                    
-                    double[][] elm = arr.get(i);
-                    System.out.printf("%.3f-%.3f -> ",elm[0][0],elm[0][1]);
+                    double elm = arr.get(i);
+                    System.out.printf("%.3f-%.3f -> ",elm,elm+delta-0.001);
                     for (int j=0; j<arrcls.size(); j++) {
                         double nameclass = (double) arrcls.get(j);
-                        int frek = getFrekuensi(idxAttrib, elm, nameclass);
-                        System.out.print(""+nameclass+": " +frek+"; ");
-                    }
-                    System.out.println();
-                }
-                System.out.println();
-	}
-        
-        public void showProbability(int idxAttrib) {
-                ArrayList<double[][]> arr = discritize(idxAttrib);
-                System.out.println("--------------");
-                
-                //Save all distinct value of class to list
-                ArrayList arrcls = new ArrayList();
-                for (int i = 0; i <dataset.numInstances(); i++) {
-                String datumclass= dataset.instance(i).stringValue(classIndex);
-                    if (!arrcls.contains(datumclass)) {
-                        arrcls.add(datumclass);
-                    }
-                }
-                
-                System.out.println(dataset.attribute(idxAttrib).name());
-                
-                for (int i=0; i<arr.size();i++) {
-                   
-                    double[][] elm = arr.get(i);
-                    System.out.printf("%.3f-%.3f -> ",elm[0][0],elm[0][1]);
-                    for (int j=0; j<arrcls.size(); j++) {
-                        double nameclass = (double) arrcls.get(j);
-                        float prob = getProbability(idxAttrib, elm, nameclass);
+                        float prob = getProbability(idxAttrib, elm, nameclass, data);
                         System.out.print(""+nameclass+": " +prob+"; ");
                     }
                     System.out.println();
                 }
                 System.out.println();
+        }
+        
+        public ArrayList<ArrayList<Double>> getProbabilityAttribute(int idxAttrib, Instances data) {
+                ArrayList<ArrayList<Double>> probArr = new ArrayList<>();
+                ArrayList<Double> arr = discritize(idxAttrib, data);
+                probArr.add(arr);
+                //Save all distinct value of class to list
+                ArrayList arrcls = new ArrayList();
+                for (int i = 0; i <data.numInstances(); i++) {
+                double datumclass= data.instance(i).value(classIndex);
+                    if (!arrcls.contains(datumclass)) {
+                        arrcls.add(datumclass);
+                    }
+                }
+                
+                //System.out.println(dataset.attribute(idxAttrib).name());
+                for (int j=0; j<arrcls.size(); j++) {
+                    ArrayList<Double> arrClass = new ArrayList<>();
+                    double nameclass = (double) arrcls.get(j);
+                    for (int i=0; i<arr.size(); i++) {
+                        double elm = arr.get(i);
+                        double prob = getProbability(idxAttrib, elm, nameclass, data);
+                        arrClass.add(prob);
+                    }
+                    probArr.add(arrClass);
+                }
+                return probArr;
         }
 	public static void main (String args[]) {
 		try {
@@ -295,15 +267,17 @@ public class NB extends AbstractClassifier {
 			BufferedReader reader = new BufferedReader(new FileReader("mush.arff"));
 			dataset = new Instances(reader);
                         
-                        //System.out.println(dataset);
                         classIndex = 0;
 			dataset.setClassIndex(classIndex);
 			reader.close();
-                        /*Evaluation eval = new Evaluation(dataset);
-                        System.out.println("tes tes");
-                        eval.evaluateModel(nb,dataset);
-                        System.out.println("test"+eval.toSummaryString("\nFull Training Results\n", false));*/
-                        int numatrinst = dataset.numAttributes();
+                        
+                        //BUILD CLASSIFIER
+                        nb.buildClassifier(dataset);
+                        Evaluation eval = new Evaluation(dataset);
+                        eval.evaluateModel(nb, dataset);
+                        System.out.println(eval.toSummaryString());
+                        System.out.println(eval.toMatrixString());
+                        /*int numatrinst = dataset.numAttributes();
                         //Input instance baru
                         Instance inst = new DenseInstance(numatrinst);
                         BufferedReader in = new BufferedReader(new FileReader("tes.txt"));
@@ -321,6 +295,7 @@ public class NB extends AbstractClassifier {
                         //process
                         int counttrue =0;
                         int counttotal = 0;
+                        int missingclass = 0;
                         while ((line = in.readLine())!=null) {
                             counttotal++;
                             String[] _line = line.split(" ");
@@ -356,17 +331,12 @@ public class NB extends AbstractClassifier {
                             } else {
                                 //System.out.println("Tidak dapat mengklasifikasi.");
                             }
-                            
-                            //System.out.println("-----------");
                         }
-                        System.out.println(((double) counttrue*100)/counttotal);
+                        System.out.println("Total : "+counttotal);
+                        System.out.println("Tepat : "+counttrue);
+                        System.out.println("Miss : "+(counttotal-counttrue));
+                        System.out.println("Akurasi : "+((double) counttrue*100)/counttotal +"%");*/
                         
-                        //System.out.println(numatrinst);
-                        //Scanner in = new Scanner(System.in);
-                        
-                        
-                        //nb.showFrekuensi(1);
-			
 		}
 		catch (Exception e){
 			e.printStackTrace();
